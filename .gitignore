@@ -1,0 +1,14 @@
+/*
+!/.gitignore
+!/index.html
+!/style.css
+!/script.js
+!/README.md
+!/photos/
+!/assets/
+/photos/*
+!/photos/*.webp
+/assets/*
+!/assets/.gitkeep
+!/assets/musique-mariage.mp3
+.opencode
