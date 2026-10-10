@@ -6,21 +6,17 @@ $(function () {
   let active = 0;
   let timer;
 
+  const particles = [];
   for (let index = 0; index < 48; index += 1) {
     const particle = document.createElement('span');
-    const leftSide = index < 24;
     particle.className = 'gold-particle';
-    particle.style.left = leftSide
-      ? (6 + Math.random() * 14) + '%'
-      : (80 + Math.random() * 14) + '%';
-    particle.style.top = (46 + Math.random() * 8) + '%';
-    particle.style.setProperty('--drift-x', (Math.random() * 90 - 45) + 'px');
-    particle.style.setProperty('--drift-y', (Math.random() * -110 - 12) + 'px');
     particle.style.setProperty('--lag', (Math.random() * 0.7) + 's');
     particle.style.setProperty('--life', (1.7 + Math.random() * 1.5) + 's');
     particle.style.setProperty('--size', (1.2 + Math.random() * 2.3) + 'px');
     particleRoot.appendChild(particle);
+    particles.push(particle);
   }
+  layoutParticles();
 
   $.getJSON('photos.json').done(function (photos) {
     $.each(photos, function (index, photo) {
@@ -62,6 +58,34 @@ $(function () {
     void nameFx.offsetWidth;
     nameFx.classList.add('is-burst');
   }
+
+  function layoutParticles() {
+    const responsive = window.matchMedia('(max-width: 700px)').matches;
+    particles.forEach(function (particle, index) {
+      const firstGroup = index < 24;
+      if (responsive) {
+        particle.style.left = (31 + Math.random() * 38) + '%';
+        particle.style.top = firstGroup
+          ? (2.5 + Math.random() * 7) + '%'
+          : (90.5 + Math.random() * 7) + '%';
+        const direction = firstGroup ? -1 : 1;
+        particle.style.setProperty('--drift-x', (Math.random() * 100 - 50) + 'px');
+        particle.style.setProperty('--drift-y', direction * (15 + Math.random() * 85) + 'px');
+      } else {
+        particle.style.left = firstGroup
+          ? (6 + Math.random() * 14) + '%'
+          : (80 + Math.random() * 14) + '%';
+        particle.style.top = (43 + Math.random() * 14) + '%';
+        particle.style.setProperty('--drift-x', (Math.random() * 90 - 45) + 'px');
+        particle.style.setProperty('--drift-y', (Math.random() * -110 - 12) + 'px');
+      }
+    });
+  }
+
+  window.addEventListener('resize', function () {
+    layoutParticles();
+    burstNames();
+  });
 
   $(document).on('visibilitychange', function () {
     if (document.hidden) window.clearInterval(timer);
