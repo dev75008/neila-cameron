@@ -1,12 +1,9 @@
 $(function () {
-  const $carousel = $('.carousel');
   const $slides = $('.slides');
   const $progress = $('.progress span');
   const delay = 5500;
   let active = 0;
   let timer;
-  let paused = false;
-  let touchX = null;
 
   $.getJSON('photos.json').done(function (photos) {
     $.each(photos, function (index, photo) {
@@ -38,7 +35,6 @@ $(function () {
   }
 
   function next() { show(active + 1); }
-  function previous() { show(active - 1); }
   function preload(index) {
     const image = $slides.children().eq(index).find('img').get(0);
     if (image) image.loading = 'eager';
@@ -48,56 +44,23 @@ $(function () {
     $progress.css({ transition: 'none', transform: 'scaleX(0)' });
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        if (!paused) $progress.css({ transition: 'transform ' + delay + 'ms linear', transform: 'scaleX(1)' });
+        $progress.css({ transition: 'transform ' + delay + 'ms linear', transform: 'scaleX(1)' });
       });
     });
   }
 
   function restartProgress() {
-    if (paused) return;
     window.clearInterval(timer);
     runProgress();
     timer = window.setInterval(next, delay);
   }
 
-  function pause() {
-    paused = true;
-    window.clearInterval(timer);
-    $progress.css({ transition: 'none' });
-    $('.toggle').text('▶').attr({ 'aria-label': 'Reprendre le diaporama', 'aria-pressed': 'false' });
-  }
-
-  function play() {
-    paused = false;
-    $('.toggle').text('Ⅱ').attr({ 'aria-label': 'Mettre le diaporama en pause', 'aria-pressed': 'true' });
-    runProgress();
-    window.clearInterval(timer);
-    timer = window.setInterval(next, delay);
-  }
-
-  $('.next').on('click', next);
-  $('.previous').on('click', previous);
-  $('.toggle').on('click', function () { paused ? play() : pause(); });
-  $(document).on('keydown', function (event) {
-    if (event.key === 'ArrowRight') next();
-    if (event.key === 'ArrowLeft') previous();
-    if (event.key === ' ' && !$(event.target).is('button')) {
-      event.preventDefault();
-      paused ? play() : pause();
-    }
-  });
-  $carousel.on('touchstart', function (event) {
-    touchX = event.originalEvent.changedTouches[0].clientX;
-  });
-  $carousel.on('touchend', function (event) {
-    if (touchX === null) return;
-    const delta = event.originalEvent.changedTouches[0].clientX - touchX;
-    if (Math.abs(delta) > 45) delta < 0 ? next() : previous();
-    touchX = null;
-  });
   $(document).on('visibilitychange', function () {
     if (document.hidden) window.clearInterval(timer);
-    else if (!paused) play();
+    else {
+      runProgress();
+      timer = window.setInterval(next, delay);
+    }
   });
 
 });
