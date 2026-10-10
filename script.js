@@ -100,11 +100,4 @@ $(function () {
     else if (!paused) play();
   });
 
-  const backgroundAudio = document.querySelector('[data-background-audio]');
-  function startMusic() {
-    if (backgroundAudio.paused) backgroundAudio.play().catch(function () {});
-  }
-  startMusic();
-  window.addEventListener('pointerdown', startMusic, { once: true, passive: true });
-  window.addEventListener('keydown', startMusic, { once: true });
 });

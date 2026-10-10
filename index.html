@@ -11,7 +11,24 @@
   <script src="script.js" defer></script>
 </head>
 <body>
-  <audio data-background-audio autoplay loop preload="auto" aria-hidden="true"><source src="assets/musique-mariage.mp3" type="audio/mpeg"></audio>
+  <audio data-background-audio autoplay loop preload="metadata" playsinline webkit-playsinline aria-hidden="true"><source src="assets/musique-mariage.mp3" type="audio/mpeg"></audio>
+  <script>
+    (() => {
+      const audio = document.querySelector('[data-background-audio]');
+      const events = ['pointerup', 'touchend', 'click', 'keydown'];
+      const unlock = () => {
+        if (!audio.paused) {
+          events.forEach(name => document.removeEventListener(name, unlock, true));
+          return;
+        }
+        audio.play().then(() => {
+          events.forEach(name => document.removeEventListener(name, unlock, true));
+        }).catch(() => {});
+      };
+      events.forEach(name => document.addEventListener(name, unlock, { capture: true, passive: true }));
+      audio.play().catch(() => {});
+    })();
+  </script>
   <main class="carousel" aria-label="Album photo">
     <div class="slides" aria-live="off"></div>
     <div class="controls">
