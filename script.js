@@ -1,5 +1,6 @@
 $(function () {
   const $slides = $('.slides');
+  const carousel = document.querySelector('.carousel');
   const nameFx = document.querySelector('.name-fx');
   const particleRoot = document.querySelector('.gold-particles');
   const delay = 5500;
@@ -60,7 +61,8 @@ $(function () {
   }
 
   function layoutParticles() {
-    const responsive = window.matchMedia('(max-width: 700px)').matches;
+    const responsive = window.matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+    carousel.classList.toggle('responsive-layout', responsive);
     particles.forEach(function (particle, index) {
       const firstGroup = index < 24;
       if (responsive) {
