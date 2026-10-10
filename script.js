@@ -99,4 +99,41 @@ $(function () {
     if (document.hidden) window.clearInterval(timer);
     else if (!paused) play();
   });
+
+  let youtubePlayer = null;
+  let audioUnlocked = false;
+  window.onYouTubeIframeAPIReady = function () {
+    youtubePlayer = new YT.Player('music-player', {
+      events: {
+        onReady: function (event) {
+          if (audioUnlocked) startMusic(event.target);
+          else event.target.playVideo();
+        },
+        onStateChange: function (event) {
+          if (event.data === YT.PlayerState.ENDED) event.target.playVideo();
+        }
+      }
+    });
+  };
+
+  function startMusic(player) {
+    audioUnlocked = true;
+    const activePlayer = player || youtubePlayer;
+    if (activePlayer) {
+      activePlayer.setVolume(100);
+      activePlayer.unMute();
+      activePlayer.playVideo();
+    }
+  }
+
+  window.addEventListener('pointerdown', function unlockAudio() {
+    startMusic();
+  }, { once: true, passive: true });
+  window.addEventListener('keydown', function unlockAudio() {
+    startMusic();
+  }, { once: true });
+
+  const youtubeApi = document.createElement('script');
+  youtubeApi.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(youtubeApi);
 });
