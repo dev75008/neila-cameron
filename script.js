@@ -1,108 +1,102 @@
-(() => {
-  const slides = [...document.querySelectorAll('.slide')];
-  const dotsRoot = document.querySelector('.dots');
-  const current = document.querySelector('[data-current]');
-  const total = document.querySelector('[data-total]');
-  const playButton = document.querySelector('[data-play]');
-  const soundButton = document.querySelector('[data-sound-toggle]');
-  const audio = document.querySelector('[data-audio]');
+$(function () {
+  const $carousel = $('.carousel');
+  const $slides = $('.slides');
+  const $progress = $('.progress span');
+  const delay = 5500;
   let active = 0;
   let timer;
-  let playing = true;
+  let paused = false;
+  let touchX = null;
 
-  total.textContent = String(slides.length).padStart(2, '0');
-  slides.forEach((_, index) => {
-    const dot = document.createElement('button');
-    dot.className = 'dot';
-    dot.type = 'button';
-    dot.setAttribute('aria-label', `Afficher la photo ${index + 1}`);
-    dot.addEventListener('click', () => show(index));
-    dotsRoot.append(dot);
+  $.getJSON('photos.json').done(function (photos) {
+    $.each(photos, function (index, photo) {
+      const $image = $('<img>', {
+        src: 'photos/' + encodeURIComponent(photo),
+        alt: '',
+        draggable: false,
+        loading: index < 2 ? 'eager' : 'lazy',
+        decoding: 'async'
+      });
+      const $slide = $('<figure>', { class: 'slide' }).append($image);
+      if (index === 0) $slide.addClass('is-active');
+      $slides.append($slide);
+    });
+    runProgress();
+    timer = window.setInterval(next, delay);
+    preload(1);
+  }).fail(function () {
+    $('.controls').hide();
   });
-  const dots = [...dotsRoot.children];
 
   function show(index) {
-    active = (index + slides.length) % slides.length;
-    slides.forEach((slide, i) => {
-      const selected = i === active;
-      slide.classList.toggle('is-active', selected);
-      slide.setAttribute('aria-hidden', String(!selected));
-      if (selected) {
-        const image = slide.querySelector('img');
-        image.loading = 'eager';
-      }
+    const count = $slides.children().length;
+    if (!count) return;
+    active = (index + count) % count;
+    $slides.children().removeClass('is-active').eq(active).addClass('is-active');
+    preload((active + 1) % count);
+    restartProgress();
+  }
+
+  function next() { show(active + 1); }
+  function previous() { show(active - 1); }
+  function preload(index) {
+    const image = $slides.children().eq(index).find('img').get(0);
+    if (image) image.loading = 'eager';
+  }
+
+  function runProgress() {
+    $progress.css({ transition: 'none', transform: 'scaleX(0)' });
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (!paused) $progress.css({ transition: 'transform ' + delay + 'ms linear', transform: 'scaleX(1)' });
+      });
     });
-    dots.forEach((dot, i) => {
-      dot.classList.toggle('is-active', i === active);
-      if (i === active) dot.setAttribute('aria-current', 'true');
-      else dot.removeAttribute('aria-current');
-    });
-    current.textContent = String(active + 1).padStart(2, '0');
   }
 
-  function start() {
-    clearInterval(timer);
-    timer = setInterval(() => show(active + 1), 5500);
-    playing = true;
-    playButton.setAttribute('aria-pressed', 'true');
-    playButton.setAttribute('aria-label', 'Mettre le diaporama en pause');
-    playButton.querySelector('[data-play-icon]').textContent = 'Ⅱ';
+  function restartProgress() {
+    if (paused) return;
+    window.clearInterval(timer);
+    runProgress();
+    timer = window.setInterval(next, delay);
   }
 
-  function stop() {
-    clearInterval(timer);
-    playing = false;
-    playButton.setAttribute('aria-pressed', 'false');
-    playButton.setAttribute('aria-label', 'Reprendre le diaporama');
-    playButton.querySelector('[data-play-icon]').textContent = '▶';
+  function pause() {
+    paused = true;
+    window.clearInterval(timer);
+    $progress.css({ transition: 'none' });
+    $('.toggle').text('▶').attr({ 'aria-label': 'Reprendre le diaporama', 'aria-pressed': 'false' });
   }
 
-  document.querySelector('[data-previous]').addEventListener('click', () => show(active - 1));
-  document.querySelector('[data-next]').addEventListener('click', () => show(active + 1));
-  playButton.addEventListener('click', () => playing ? stop() : start());
-  document.querySelectorAll('.gallery-card').forEach(card => card.addEventListener('click', () => {
-    show(Number(card.dataset.index));
-    document.querySelector('.hero').scrollIntoView({ behavior: 'smooth' });
-  }));
+  function play() {
+    paused = false;
+    $('.toggle').text('Ⅱ').attr({ 'aria-label': 'Mettre le diaporama en pause', 'aria-pressed': 'true' });
+    runProgress();
+    window.clearInterval(timer);
+    timer = window.setInterval(next, delay);
+  }
 
-  document.querySelector('.carousel').addEventListener('mouseenter', stop);
-  document.querySelector('.carousel').addEventListener('mouseleave', () => { if (!playing) start(); });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) clearInterval(timer);
-    else if (playing) start();
-  });
-  document.addEventListener('keydown', event => {
-    if (event.key === 'ArrowRight') show(active + 1);
-    if (event.key === 'ArrowLeft') show(active - 1);
-  });
-
-  soundButton.addEventListener('click', async () => {
-    if (audio.paused) {
-      try {
-        await audio.play();
-        soundButton.classList.add('is-playing');
-        soundButton.setAttribute('aria-pressed', 'true');
-        soundButton.setAttribute('aria-label', 'Mettre la musique en pause');
-        soundButton.querySelector('[data-sound-label]').textContent = 'MUSIQUE EN COURS';
-      } catch {
-        soundButton.querySelector('[data-sound-label]').textContent = 'AJOUTEZ VOTRE MUSIQUE';
-      }
-    } else {
-      audio.pause();
-      soundButton.classList.remove('is-playing');
-      soundButton.setAttribute('aria-pressed', 'false');
-      soundButton.setAttribute('aria-label', 'Lancer la musique');
-      soundButton.querySelector('[data-sound-label]').textContent = 'LANCER LA MUSIQUE';
+  $('.next').on('click', next);
+  $('.previous').on('click', previous);
+  $('.toggle').on('click', function () { paused ? play() : pause(); });
+  $(document).on('keydown', function (event) {
+    if (event.key === 'ArrowRight') next();
+    if (event.key === 'ArrowLeft') previous();
+    if (event.key === ' ' && !$(event.target).is('button')) {
+      event.preventDefault();
+      paused ? play() : pause();
     }
   });
-
-  const carousel = document.querySelector('.carousel');
-  carousel.addEventListener('touchstart', event => { carousel.dataset.touchStart = event.changedTouches[0].clientX; }, { passive: true });
-  carousel.addEventListener('touchend', event => {
-    const startX = Number(carousel.dataset.touchStart);
-    const delta = event.changedTouches[0].clientX - startX;
-    if (Math.abs(delta) > 55) show(active + (delta < 0 ? 1 : -1));
-  }, { passive: true });
-  show(0);
-  start();
-})();
+  $carousel.on('touchstart', function (event) {
+    touchX = event.originalEvent.changedTouches[0].clientX;
+  });
+  $carousel.on('touchend', function (event) {
+    if (touchX === null) return;
+    const delta = event.originalEvent.changedTouches[0].clientX - touchX;
+    if (Math.abs(delta) > 45) delta < 0 ? next() : previous();
+    touchX = null;
+  });
+  $(document).on('visibilitychange', function () {
+    if (document.hidden) window.clearInterval(timer);
+    else if (!paused) play();
+  });
+});
